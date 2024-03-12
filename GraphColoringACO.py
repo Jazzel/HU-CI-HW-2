@@ -137,9 +137,9 @@ class AntColony(Ant):
         file = open("results.json", "w+")
 
         self.initialize_pheromones_matrix()
-        for i in range(1):
+        for i in range(self.num_iterations):
             print(f"Iteration {i}")
-            for j in range(2):
+            for j in range(self.no_of_ants):
                 print(f"Ant {j}")
                 a = Ant(
                     self.Q,
