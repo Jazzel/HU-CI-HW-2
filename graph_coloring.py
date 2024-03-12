@@ -1,6 +1,7 @@
 from GraphColoringACO import Ant, Graph, AntColony
 
-class GraphColoring(Ant):
+
+class GraphColoring(AntColony):
 
     def __init__(self, file, Q, alpha, beta, rho, no_of_ants, generations) -> None:
         super().__init__(Q, alpha, beta, rho, no_of_ants, generations)
@@ -13,6 +14,7 @@ class GraphColoring(Ant):
         self.rho = rho
         self.no_of_ants = no_of_ants
         self.generations = generations
+        self.graph = Graph()
         self.read_data()
 
     def read_data(self):
@@ -36,7 +38,5 @@ file = "le450_15b.col.txt"
 graphColoring = GraphColoring(
     file=file, Q=1, alpha=1, beta=1, rho=0.5, no_of_ants=10, generations=100
 )
-
-
-
+print(graphColoring.run())
 # print(data)
