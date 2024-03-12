@@ -21,7 +21,7 @@ class ACO:
         self.rho = rho
         self.no_of_ants = no_of_ants
         self.best_solution = []
-        self.best_solution_score = float("inf")
+        self.best_solution_score = 0
         self.pheromones_matrix = {}
         self.distance_matrix = {}
         self.num_iterations = num_iterations
@@ -32,11 +32,12 @@ class ACO:
             for j in range(1, self.graph.nodes + 1):
                 if i == j:
                     self.distance_matrix[(i, j)] = 0
-                else:
-                    if j in self.graph.get_neighbors(i):
+                elif j in self.graph.get_neighbors(i):
                         self.distance_matrix[(i, j)] = (
                             1 / self.graph.G[i][self.graph.get_neighbors(i).index(j)][1]
                         )
+                else:
+                    self.distance_matrix[(i, j)] = 0
 
     def generate_pheromones_matrix(self):
         for i in range(1, self.graph.nodes + 1):
@@ -89,7 +90,7 @@ class ACO:
                 - self.rho
                 + self.Q / distance
             )
-        if distance < self.best_solution_score:
+        if distance > self.best_solution_score:
             self.best_solution = solution
             self.best_solution_score = distance
 
@@ -105,5 +106,4 @@ class ACO:
                 distance = self.evaluate_solution(ant_solution)
                 self.update_pheromone_matrix(ant_solution, distance)
                 print(distance)
-
         return self.best_solution, self.best_solution_score
