@@ -31,7 +31,8 @@ class Ant:
         self.graph = Graph()
     
     def initialize_pheromones_matrix(self):
-        self.pheromones_matrix = [[1 for i in range(self.graph.nodes)] for j in range(self.graph.nodes)]
+        # self.pheromones_matrix = [[1 for i in range(self.graph.nodes)] for j in range(self.graph.nodes)]
+        self.pheromones_matrix = {(i, j): 1 for i in self.graph.G.keys() for j in self.graph.G.keys()}
         for i in list(self.graph.G.keys()):
             for j in self.graph.get_neighbors(i):
                 self.pheromones_matrix[(i, j)] = 0
@@ -97,8 +98,9 @@ class AntColony(Ant):
         self.initialize_pheromones_matrix()
         for i in range(self.num_iterations):
             for j in range(self.no_of_ants):
-                current_position = random.choice(self.unvisited)
+                a = Ant()
                 self.initial_colouring()
+                current_position = random.choice(self.unvisited)
                 while len(self.unvisited) > 0:
                     next_position = self.candidate_solution(current_position)
                     if next_position is not None:
