@@ -1,7 +1,7 @@
 import random
+import matplotlib.pyplot as plt
 
 class Graph:
-
     def __init__(self) -> None:
         self.G = {}
         self.nodes = 0
@@ -11,76 +11,99 @@ class Graph:
         neighbors = self.G[vertex]
         return [i[0] for i in neighbors]
     
-    # def get_adjacency_matrix(self):
-    #     adjacency_matrix = [[0 for i in range(self.nodes)] for j in range(self.nodes)]
-    #     for i in range(1, self.nodes + 1):
-    #         for j in self.get_neighbors(i):
-    #             adjacency_matrix[i - 1][j - 1] = 1
-    #     return adjacency_matrix
+    def get_edges(self):
+        edges = []
+        for i in self.G.keys():
+            for j in self.G[i]:
+                edges.append((i, j[0]))
+        return edges
     
+    def max_degree(self,graph) -> int:
+        max_degree = 0
+        max_degree_node = None
+        for i in graph.keys():
+            if len(graph[i]) > max_degree:
+                max_degree = len(graph[i])
+                max_degree_node = i
+        return max_degree_node
+
+
 class Ant:
-    def __init__(self, Q, alpha, beta, rho) -> None:
+    def __init__(self, Q, alpha, beta, rho, graph, pheromones_matrix) -> None:
         self.Q = Q
         self.alpha = alpha
         self.beta = beta
         self.rho = rho
-        self.visited = []
-        self.unvisited = []
-        self.colours=[]
-        self.assigned_colours = {}
-        self.graph = Graph()
-    
-    def initialize_pheromones_matrix(self):
-        # self.pheromones_matrix = [[1 for i in range(self.graph.nodes)] for j in range(self.graph.nodes)]
-        self.pheromones_matrix = {(i, j): 1 for i in self.graph.G.keys() for j in self.graph.G.keys()}
-        for i in list(self.graph.G.keys()):
-            for j in self.graph.get_neighbors(i):
-                self.pheromones_matrix[(i, j)] = 0
+        self.unvisited = [] #refer as A
+        self.partial_solutions = {}
+        self.graph = graph
+        self.pheromones_matrix = pheromones_matrix
+        self.cmin = []
+        self.dsat = []
 
-    def initial_colouring(self):
-        self.colours = [i for i in range(1, self.graph.nodes + 1)]
-        for i in range(1, self.graph.nodes + 1):
-            self.assigned_colours[i] = random.choice(self.colours)
-            self.unvisited.append(i)
-    
-    def improve_colouring(self, vertex):
-        neighbours = self.graph.get_neighbors(vertex)
-        tabu = []
-        for neighbour in neighbours:
-            tabu.append(self.assigned_colours[neighbour])
-        for colour in self.colours:
-            if colour not in tabu:
-                self.assigned_colours[vertex] = colour
-                self.visited.append(vertex)
-                self.unvisited.remove(vertex)
-                break
-
-    def update_pheromones_matrix(self):
-        for i in self.graph.G.keys():
-            for j in self.graph.G.keys():
-                self.pheromones_matrix[(i, j)] *= (1 - self.rho)
-                if i != j:
-                    self.pheromones_matrix[(i, j)] += self.Q / len(set(self.assigned_colours.values()))
-
-    def heuristic_value(self,vertex)->int:
-        dsat = []
+    def update_cmin(self, vertex):
         for i in self.graph.get_neighbors(vertex):
-            if self.assigned_colours[i] not in dsat:
-                dsat.append(self.assigned_colours[i])     
-        return len(dsat)      
+            colours = []
+            for j in self.graph.get_neighbors(i):
+                if self.cmin[j-1] not in colours:
+                    colours.append(self.cmin[j-1])
+            colours = sorted(colours)
+            for k in range(1,len(colours)+1):
+                if k not in colours:
+                    self.cmin[i-1] = k
+                    break
+                elif k == len(colours) and k in colours:
+                    self.cmin[i-1] = len(colours)+1
+                    break
 
-    def candidate_solution(self, current_position) -> int:
-        if len(self.unvisited) == 0:
-            return None
-        candidates = []
-        probability_vector = []
-        for vertex in self.unvisited:
-            candidates.append(vertex)
-            probability_vector.append(self.pheromones_matrix[(current_position, vertex)] ** self.alpha * self.heuristic_value(vertex) ** self.beta)
-        total = sum(probability_vector)
-        probability_vector = [i / total for i in probability_vector if total != 0]
-        return random.choices(candidates, probability_vector)[0]
+    def update_dsat(self, vertex):
+        for i in self.graph.get_neighbors(vertex):
+            colours = []
+            for j in self.graph.get_neighbors(i):
+                if self.cmin[j-1] not in colours:
+                    colours.append(self.cmin[j-1])
+            self.dsat[i-1] = len(colours)
+
+    def pick_pheromones(self, vertex):
+        if len(self.partial_solutions[self.cmin[vertex-1]-1]) == 0:
+            return 1
+        arr = [self.pheromones_matrix[(i,vertex,)] for i in self.partial_solutions[self.cmin[vertex-1]-1]]
+        return sum(arr)/len(arr)
     
+    def next_vertex(self):
+        probabilities = []
+        for v in self.unvisited:
+            probabilities.append(
+                self.pick_pheromones(v) ** self.alpha * self.dsat[v-1] ** self.beta
+            )
+        total = sum(probabilities)
+        if total == 0:
+            return random.choice(self.unvisited)
+        probabilities = [i / total for i in probabilities]
+        return random.choices(self.unvisited, probabilities)[0]
+
+    def construct_potential_solution(self):
+        self.cmin = [1 for _ in range(self.graph.nodes)]
+        self.dsat = [0 for _ in range(self.graph.nodes)]
+        self.unvisited = list(self.graph.G.keys())
+        self.partial_solutions = [set() for _ in range(self.graph.nodes)]
+        current_vertex = self.graph.max_degree(self.graph.G)
+        q = 1 #number of colours used
+        self.partial_solutions[q-1].add(current_vertex)
+        for i in range(2,self.graph.nodes+1):
+            self.update_cmin(current_vertex)
+            self.update_dsat(current_vertex)
+            self.unvisited.remove(current_vertex)            
+            current_vertex = self.next_vertex()
+            color = self.cmin[current_vertex-1]
+            self.partial_solutions[color-1].add(current_vertex)
+            if color == q+1:
+                q += 1
+        return self.partial_solutions, max(self.cmin)
+    
+    def run(self):
+        return self.construct_potential_solution()
+
 class AntColony(Ant):
     def __init__(self, Q, alpha, beta, rho, no_of_ants, num_iterations) -> None:
         self.Q = Q
@@ -89,24 +112,70 @@ class AntColony(Ant):
         self.rho = rho
         self.no_of_ants = no_of_ants
         self.best_solution = {}
+        self.best_solution_score = float("inf")
         self.pheromones_matrix = {}
-        self.best_solution_score = 0
         self.num_iterations = num_iterations
-        self.graph = Graph()
-    
+
+    def initialize_pheromones_matrix(self):
+        self.pheromones_matrix = {
+            (i, j): 1 for i in self.graph.G.keys() for j in self.graph.G.keys()
+        }
+        for i in self.graph.G.keys():
+            for j in self.graph.get_neighbors(i):
+                self.pheromones_matrix[(i, j)] = 0
+
+    def update_pheromones_matrix(self, deltaTau):
+        for i in self.graph.G.keys():
+            for j in self.graph.G.keys():
+                if i not in self.graph.get_neighbors(j) and i != j:
+                    self.pheromones_matrix[(i, j)] = (1-self.rho) * self.pheromones_matrix[(i, j)] + deltaTau[(i, j)]
+
     def run(self):
+        avg_fitness = []    
+        best_fitness = []
+
         self.initialize_pheromones_matrix()
         for i in range(self.num_iterations):
+            print(f"Iteration {i}")
+            sum = 0
+            deltaTau = {
+            (i, j): 0 for i in self.graph.G.keys() for j in self.graph.G.keys()
+            }
             for j in range(self.no_of_ants):
-                a = Ant()
-                self.initial_colouring()
-                current_position = random.choice(self.unvisited)
-                while len(self.unvisited) > 0:
-                    next_position = self.candidate_solution(current_position)
-                    if next_position is not None:
-                        self.improve_colouring(next_position)
-                if self.best_solution_score < len(set(self.assigned_colours.values())):
-                    self.best_solution = self.assigned_colours
-                    self.best_solution_score = len(set(self.assigned_colours.values()))
-                self.update_pheromones_matrix()
-        return self.best_solution, self.best_solution_score
+                print(f"Ant {j}")
+                a = Ant(
+                    self.Q,
+                    self.alpha,
+                    self.beta,
+                    self.rho,
+                    self.graph,
+                    self.pheromones_matrix,
+                )
+                current_solution, current_solution_score = a.run()
+
+                if current_solution_score < self.best_solution_score:
+                    self.best_solution = current_solution
+                    self.best_solution_score = current_solution_score
+
+                for i in self.graph.G.keys():
+                    for j in self.graph.G.keys():
+                        if i!= j and i not in self.graph.get_neighbors(j):
+                            if a.cmin[i-1] != a.cmin[j-1]:
+                                deltaTau[(i, j)] += self.Q / current_solution_score
+                
+                sum += current_solution_score
+            self.update_pheromones_matrix(deltaTau)
+
+            best_fitness.append(self.best_solution_score)
+            avg_fitness.append(round((sum / self.no_of_ants),2))
+            print(avg_fitness, best_fitness)
+        x_axis = [i for i in range(self.num_iterations)]
+        plt.figure()
+        plt.plot(x_axis, avg_fitness, label="Average fitness so far")
+        plt.plot(x_axis, best_fitness, label="Best fitness so far")
+        plt.xlabel('Number of iterations')
+        plt.ylabel('Fitness')
+        plt.title("Fitness over time")
+        plt.legend()
+        plt.show()
+        return self.final_solution, self.final_solution_score
