@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Particles with Three.js</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      background-color: black;
+      width: 100vw;
+    }
+
+    .controls {
+      border: 2px white solid;
+      background-color: white;
+      z-index: 1000;
+    }
+
+    .menu,
+    .card-container {
+      z-index: 1000;
+    }
+
+    .card-container {
+      color: black !important;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Button trigger modal -->
+  <div class="row card-body">
+    <div class="col-3">
+      <div class="card-container p-3 card text-white bg-light">
+        <div class="">
+          <button type="button" class="w-100 menu btn btn-secondary btn-lg" data-toggle="modal" data-target="#modelId">
+            Menu
+          </button>
+          <center>
+            <h2 class="p-2">Mode: <span id="modeText"></span></h2>
+          </center>
+          <div class="row mt-3">
+            <div class="col">
+              <div class="form-group">
+                <label for="particleCount">Particle Count</label>
+                <input type="range" class="w-100" id="particleCount" min="100" max="10000" value="500" />
+              </div>
+              <div class="form-group">
+                <label for="particleSize">Particle Size</label>
+                <input type="range" class="w-100" id="particleSize" min="2" max="15" value="4" />
+              </div>
+
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label for="particleSpeed">Particle Speed</label>
+                <input type="range" class="w-100" id="particleSpeed" min="0.1" max="1" value="0.1" step="0.1" />
+              </div>
+              <div class="form-group">
+                <label for="particleLifespan">Particle Lifespan</label>
+                <input type="range" class="w-100" id="particleLifespan" min="10" max="100" value="30" />
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="particleType">Particle Type</label>
+            <select id="particleType" class="form-control">
+              <option value="Sphere">Sphere</option>
+              <option value="Cube">Cube</option>
+              <option value="Diamond">Diamond</option>
+              <option value="Wall">Wall</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="particleType">Gravity</label>
+            <br />
+            <input type="checkbox" id="gravity" /> Enable/Disable
+          </div>
+          <button type="button" class="w-100 menu btn btn-secondary btn-lg" id="reset">
+            Reset
+          </button>
+          <small>Press reset to restart/replay simulation.</small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- Modal -->
+  <div class="modal fade" id="modelId" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Modes</h2>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="">
+            <div class="row">
+              <div class="col">
+                <input type="radio" name="mode" id="animateRandomly" /> Animate randomly (whole canvas)
+                <br />
+                <input type="radio" name="mode" id="animateRandomlyCircle" /> Animate randomly (circle)
+                <br />
+                <input type="radio" name="mode" id="animateWithMouse" /> Animate with Mouse <br />
+              </div>
+              <div class="col">
+                <input type="radio" name="mode" id="generateParticles" /> Particles generation (mouse click/hold)
+                <br />
+                <input type="radio" name="mode" id="partyPopperMode" /> Party popper mode (particles explode) <br />
+              </div>
+              <div class="col">
+                <input type="radio" name="mode" id="emitterMode" checked="true" /> Emitter mode (particles emit from a
+                point)
+                <br />
+                <input type="radio" name="mode" id="doubleEmitterMode" /> Double emitter mode (particles emit from two
+                points
+                and
+                collide) <br />
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-lg btn-dark w-100" id="save">Save changes</button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="canvas"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="./particles.js"></script>
+
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
