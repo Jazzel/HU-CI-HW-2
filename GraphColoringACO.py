@@ -127,8 +127,8 @@ class AntColony(Ant):
     def update_pheromones_matrix(self, deltaTau):
         for i in self.graph.G.keys():
             for j in self.graph.G.keys():
-                if i not in self.graph.get_neighbors(j) and i != j:
-                    self.pheromones_matrix[(i, j)] = (1-self.rho) * self.pheromones_matrix[(i, j)] + deltaTau[(i, j)]
+                if i not in self.graph.get_neighbors(j):
+                    self.pheromones_matrix[(i, j)] = ((1-self.rho) * self.pheromones_matrix[(i, j)]) + deltaTau[(i, j)]
 
     def run(self):
         avg_fitness = []    
@@ -159,16 +159,16 @@ class AntColony(Ant):
 
                 for i in self.graph.G.keys():
                     for j in self.graph.G.keys():
-                        if i!= j and i not in self.graph.get_neighbors(j):
+                        if i not in self.graph.get_neighbors(j):
                             if a.cmin[i-1] != a.cmin[j-1]:
                                 deltaTau[(i, j)] += self.Q / current_solution_score
                 
                 sum += current_solution_score
             self.update_pheromones_matrix(deltaTau)
-
             best_fitness.append(self.best_solution_score)
             avg_fitness.append(round((sum / self.no_of_ants),2))
             print(avg_fitness, best_fitness)
+        print(f"Pheromones matrix: {self.pheromones_matrix}")
         x_axis = [i for i in range(self.num_iterations)]
         plt.figure()
         plt.plot(x_axis, avg_fitness, label="Average fitness so far")
